@@ -1,0 +1,546 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIT | Hydrodynamics Lab</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #02272F; 
+            --brand-accent: #F15A24;  
+            --brand-accent-soft: rgba(241, 90, 36, 0.1);
+            --bg-page: #F4F7F6;      
+            --bg-card: #ffffff;
+            --border-ui: rgba(2, 39, 47, 0.08);
+            --text-main: #02272F;
+            --text-muted: #536B69;
+            --shadow-sm: 0 2px 8px rgba(2, 39, 47, 0.04);
+            --shadow-md: 0 10px 30px rgba(2, 39, 47, 0.08);
+            --radius-lg: 20px;
+            --radius-md: 12px;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-page);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        header {
+            background: var(--bg-card);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-ui);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            min-height: 60px;
+        }
+
+        /* Main Viewport */
+        #simulation-viewport {
+            width: 100vw;
+            height: 70vh;
+            background: #fff;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-image: radial-gradient(var(--border-ui) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Float Controls */
+        #overlay-controls {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            width: 340px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-md);
+            z-index: 100;
+        }
+
+        .input-group { margin-bottom: 24px; }
+        
+        label { 
+            display: block; 
+            font-size: 0.75rem; 
+            color: var(--text-main); 
+            margin-bottom: 10px; 
+            font-weight: 700;
+        }
+        
+        select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-ui);
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            background: var(--bg-card);
+            color: var(--text-main);
+            cursor: pointer;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2302272F' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+
+        select:hover { border-color: var(--text-muted); }
+        select:focus { outline: none; border-color: var(--brand-accent); box-shadow: 0 0 0 4px var(--brand-accent-soft); }
+
+        .slider-box {
+            background: rgba(2, 39, 47, 0.03);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-ui);
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .slider-header span:last-child {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--brand-accent);
+        }
+
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: var(--border-ui);
+            border-radius: 3px;
+            outline: none;
+            accent-color: var(--brand-accent);
+        }
+
+        button#launch-btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button#launch-btn:hover { 
+            background: var(--brand-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px var(--brand-accent-soft);
+        }
+
+        /* Dashboard */
+        #dashboard-content {
+            max-width: 1400px;
+            margin: -40px auto 60px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            gap: 24px;
+            position: relative;
+            z-index: 200;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-ui);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--brand-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-title svg { color: var(--brand-accent); }
+
+        /* Telemetry */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .metric {
+            background: #F9FAFB;
+            padding: 24px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-ui);
+            transition: transform 0.2s ease;
+        }
+        
+        .metric:hover { transform: translateY(-2px); }
+
+        .metric-label { 
+            font-size: 0.7rem; 
+            color: var(--text-muted); 
+            text-transform: uppercase; 
+            font-weight: 700; 
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value { 
+            font-size: 1.8rem; 
+            font-weight: 800; 
+            color: var(--brand-primary);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: -1px;
+        }
+
+        .conclusion-box {
+            margin-top: 24px;
+            padding: 20px;
+            background: #FDF5F2;
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--brand-accent);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--brand-primary);
+        }
+
+        /* Charts */
+        .analysis-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .chart-group {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chart-item {
+            background: #F9FAFB;
+            border-radius: var(--radius-md);
+            padding: 20px;
+            border: 1px solid var(--border-ui);
+        }
+
+        .chart-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .chart-viz {
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-ui);
+        }
+
+        .bar-wrap {
+            width: 40px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            position: relative;
+        }
+
+        .bar {
+            width: 100%;
+            background: var(--brand-primary);
+            border-radius: 6px 6px 0 0;
+            transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .bar.active { background: var(--brand-accent); }
+
+        .bar-val {
+            position: absolute;
+            top: -24px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--brand-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .bar-sub {
+            position: absolute;
+            bottom: -24px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        /* Math Block */
+        .math-card {
+            grid-column: 1 / -1;
+            background: var(--brand-primary);
+            color: #fff;
+            padding: 40px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .math-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            opacity: 0.6;
+        }
+
+        .math-header span {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .math-header hr { flex: 1; border: none; height: 1px; background: rgba(255,255,255,0.15); }
+
+        .equations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .eq-item {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            padding: 24px;
+            background: rgba(255,255,255,0.05);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255,255,255,0.1);
+            line-height: 1.8;
+        }
+
+        .eq-item b { color: var(--brand-accent); font-weight: 500; }
+
+        .constants {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            opacity: 0.5;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        @media (max-width: 1100px) {
+            #dashboard-content { grid-template-columns: 1fr; }
+            .analysis-tabs { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            #overlay-controls { width: calc(100% - 48px); left: 24px; top: 12px; }
+            #simulation-viewport { height: 60vh; }
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+
+    <header></header>
+
+    <section id="simulation-viewport">
+        <div id="overlay-controls">
+            <div class="input-group">
+                <label>Operational Scenario</label>
+                <select id="scenario-select">
+                    <option value="1">S1: Ideal (Theoretical)</option>
+                    <option value="2">S2: Ground (Atmospheric)</option>
+                    <option value="3" selected>S3: Elevated (Atmospheric)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Injection Angle (θ)</label>
+                <select id="angle-select">
+                    <option value="30" selected>30° Optimal Projection</option>
+                    <option value="45">45° Peak Amplitude</option>
+                    <option value="60">60° Vertical Lift</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Initial Velocity (v₀)</label>
+                <div class="slider-box">
+                    <div class="slider-header">
+                        <span>Rate</span>
+                        <span id="velocity-display">2.5 m/s</span>
+                    </div>
+                    <input type="range" id="velocity-slider" min="1.0" max="15.0" step="0.1" value="2.5">
+                </div>
+            </div>
+
+            <button id="launch-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-14 9V3z"/></svg>
+                Run Simulation
+            </button>
+        </div>
+
+        <div id="canvas-container"></div>
+    </section>
+
+    <main id="dashboard-content">
+        <!-- Telemetry -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    Live Telemetry
+                </div>
+            </div>
+            <div class="telemetry-grid">
+                <div class="metric">
+                    <div class="metric-label">Horizontal Range</div>
+                    <div class="metric-value"><span id="range-val">0.00</span><small style="font-size: 0.5em; opacity: 0.5; margin-left: 4px;">m</small></div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Max Apogee</div>
+                    <div class="metric-value"><span id="height-val">0.00</span><small style="font-size: 0.5em; opacity: 0.5; margin-left: 4px;">m</small></div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Flight Duration</div>
+                    <div class="metric-value"><span id="time-val">0.00</span><small style="font-size: 0.5em; opacity: 0.5; margin-left: 4px;">s</small></div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Efficiency</div>
+                    <div class="metric-value"><span id="energy-val">0</span><small style="font-size: 0.5em; opacity: 0.5; margin-left: 4px;">%</small></div>
+                </div>
+            </div>
+            <div class="conclusion-box">
+                <b>Insight:</b> Elevating the nozzle above the 0.25m ground baseline (Scenario 3) consistently yields superior dispersion patterns, effectively counteracting drag-induced velocity decay.
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                    Comparative Metrics
+                </div>
+            </div>
+            <div class="analysis-tabs">
+                
+                <div class="chart-group">
+                    <div class="chart-item">
+                        <div class="chart-label">Range (m)</div>
+                        <div class="chart-viz">
+                            <div class="bar-wrap"><div class="bar" id="bar-range-1"><span class="bar-val" id="val-range-1">0.0</span></div><span class="bar-sub">S1</span></div>
+                            <div class="bar-wrap"><div class="bar" id="bar-range-2"><span class="bar-val" id="val-range-2">0.0</span></div><span class="bar-sub">S2</span></div>
+                            <div class="bar-wrap"><div class="bar active" id="bar-range-3"><span class="bar-val" id="val-range-3">0.0</span></div><span class="bar-sub">S3</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-group">
+                    <div class="chart-item">
+                        <div class="chart-label">Height (m)</div>
+                        <div class="chart-viz">
+                            <div class="bar-wrap"><div class="bar" id="bar-height-1"><span class="bar-val" id="val-height-1">0.0</span></div><span class="bar-sub">S1</span></div>
+                            <div class="bar-wrap"><div class="bar" id="bar-height-2"><span class="bar-val" id="val-height-2">0.0</span></div><span class="bar-sub">S2</span></div>
+                            <div class="bar-wrap"><div class="bar active" id="bar-height-3"><span class="bar-val" id="val-height-3">0.0</span></div><span class="bar-sub">S3</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-group">
+                    <div class="chart-item">
+                        <div class="chart-label">Velocity (m/s)</div>
+                        <div class="chart-viz">
+                            <div class="bar-wrap"><div class="bar" id="bar-vel-1"><span class="bar-val" id="val-vel-1">0.0</span></div><span class="bar-sub">S1</span></div>
+                            <div class="bar-wrap"><div class="bar" id="bar-vel-2"><span class="bar-val" id="val-vel-2">0.0</span></div><span class="bar-sub">S2</span></div>
+                            <div class="bar-wrap"><div class="bar active" id="bar-vel-3"><span class="bar-val" id="val-vel-3">0.0</span></div><span class="bar-sub">S3</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Math -->
+        <div class="math-card">
+            <div class="math-header">
+                <span>Core Scientific Principles</span>
+                <hr>
+            </div>
+            <div class="equations">
+                <div class="eq-item">
+                    <b>Horizontal Displacement</b><br>
+                    x(t) = (v₀ cos θ / β) [1 - e⁻ᵝᵗ]
+                </div>
+                <div class="eq-item">
+                    <b>Vertical Displacement</b><br>
+                    y(t) = h₀ + (1/β) (v₀ sin θ + g/β) [1 - e⁻ᵝᵗ] - gt/β
+                </div>
+            </div>
+            <div class="constants">
+                PARAMETERS: v₀ = <span id="v0-math">2.5</span> m/s | β = 1.5 m⁻¹ | g = 9.81 m/s² | h₀ ∈ {0.45, 1.0} | floor = 0.25m
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
