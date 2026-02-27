@@ -31,9 +31,3 @@ cd BetterSprinkler
 npm install
 npm run dev
 Open http://localhost:5173
-Physics Essentials
-Ideal range: $  R = \frac{v_0^2 \sin 2\theta}{g}  $
-With drag: $  F_d = -\frac{1}{2} C_d \rho A v^2  $; solved via time-step integration.
-Higher release height extends flight time → increased range despite drag.
-License
-MIT
